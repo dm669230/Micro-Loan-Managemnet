@@ -1,0 +1,28 @@
+To push code to GitHub, you can use the command line to: 
+
+Initialize a local repository: 
+Navigate to the project directory 
+>>>>>>>>   git init 
+
+Add files to the repository:
+
+Add individual files with filename
+>>>>>>>>   git add filename 
+
+Add all files in the directory with  
+>>>>>>>>   git add .
+
+Commit the files: 
+>>>>>>>>   git commit -m "Initial commit" 
+
+Create a remote repository on GitHub: 
+Go to GitHub and sign in 
+Click the "+" icon in the top right corner and select "New repository" 
+Add the remote repository to your local project: 
+Copy the GitHub URL for the new repo 
+Run git remote add origin git@github.com: sammy/my-new-project.git
+
+Push the code to GitHub: 
+>>>>>>>>>   git push -u -f origin main 
+The -u flag sets the remote origin as the upstream reference 
+The -f flag stands for force, which will automatically overwrite everything in the remote directory 
