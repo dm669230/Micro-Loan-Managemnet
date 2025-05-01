@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends,Body, Request
-from app.db.session import get_db
+from app.db.session import get_db, get_redis_client
 import jwt
 from jwt import PyJWTError
 import time
 from app.schemas import loan_manage_schema as loan_manage_schema
 from sqlalchemy.orm import Session
-from app.contollers.LoanManageController import register_new_loan,apply_new_loan, all_loans, update_loan_status
+from app.contollers.LoanManageController import apply_new_loan, get_loan_status, update_loan_status
 from app.models import model as mdl
 from fastapi.responses import JSONResponse
 from functools import wraps
@@ -22,7 +22,6 @@ def login_required(func):
         db = kwargs.get("db")
         headers =  req.headers
         print("headers999", req.headers)
-        print("in the wrapper")
         if not headers or not headers.get("Authorization"):
             return JSONResponse({"message":"Authentication Credentials were Not Provided"})
         token = headers.get('Authorization').split(' ')[1]
@@ -41,9 +40,6 @@ def login_required(func):
 
         user_id = decoded.get("user_id")
         exist_user = db.query(mdl.UsersModel).filter(mdl.UsersModel.id == user_id).first()
-        print('user', username)
-        print('user_id', user_id)
-        print('exist_user', exist_user.email, exist_user.id, exist_user.name)
         if exist_user and exist_user.email == username:
             # req.user = exist_user
             req.state.user = exist_user  # ✅ Set user in req.stateassign req.user
@@ -55,26 +51,21 @@ def login_required(func):
 def loan_management():
     print("hi loan management dashboard !")
 
-# @router.post("/loan_register")
-# @login_required
-# def loan_register(req : Request, new_loan_schema:loan_manage_schema.NewLoanRegisterSchema, db:Session=Depends(get_db)):
-#     response = register_new_loan(req, new_loan_schema,db)
-#     return response
-
 @router.post("/loan_application")
 @login_required
-def loan_apply(req : Request, loan_apply_schema:loan_manage_schema.NewLoanApplySchema, db:Session=Depends(get_db)):
-    response = apply_new_loan(req, loan_apply_schema,db)
+def loan_apply(req : Request, loan_apply_schema:loan_manage_schema.NewLoanApplySchema, 
+               redis_client:Session=Depends(get_redis_client), db:Session=Depends(get_db)):
+    response = apply_new_loan(req, loan_apply_schema, redis_client, db)
     return response
 
 @router.post("/get_all_loans")
 @login_required
-def get_loans(db:Session=Depends(get_db)):
-    response = all_loans(db)
+def get_loans(req : Request, redis_client:Session=Depends(get_redis_client), db:Session=Depends(get_db)):
+    response = get_loan_status(req, redis_client, db)
     return response
 
 @router.post("/{loan_id}/status")
 @login_required
-def loan_status(loan_id : int, loan_status : loan_manage_schema.UpdateLoanStatusSchema , db:Session = Depends(get_db)):
-    response = update_loan_status(loan_id,loan_status, db)
+def loan_status(req : Request, loan_id : int, loan_status : loan_manage_schema.UpdateLoanStatusSchema , db:Session = Depends(get_db)):
+    response = update_loan_status(req, loan_id,loan_status, db)
     return response

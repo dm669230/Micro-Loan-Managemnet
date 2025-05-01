@@ -1,7 +1,7 @@
 # from app.config.db import  get_db
 from sqlalchemy.orm import Session
-import bcrypt
-import base64, hashlib
+import json
+import redis.exceptions
 from datetime import datetime, timedelta
 import time
 from fastapi import Depends, HTTPException, status
@@ -22,32 +22,30 @@ load_dotenv(override=True)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def register_new_loan(req, new_loan_schema:LM_schema.NewLoanRegisterSchema, db):
-    try:
-        user_id = req.state.user.id
-        new_loan = mdl.LoansModel(user_id=user_id,
-                            loan_amount=new_loan_schema.loan_amount, 
-                            loan_status = new_loan_schema.loan_status,
-                            interest_rate = new_loan_schema.interest_rate,
-                            start_date = new_loan_schema.start_date,
-                            end_date = new_loan_schema.end_date,
-                            )
+# def register_new_loan(req, redis_client, new_loan_schema:LM_schema.NewLoanRegisterSchema, db):
+#     try:
+#         user_id = req.state.user.id
+#         new_loan = mdl.LoansModel(user_id=user_id,
+#                             loan_amount=new_loan_schema.loan_amount, 
+#                             loan_status = new_loan_schema.loan_status,
+#                             interest_rate = new_loan_schema.interest_rate,
+#                             start_date = new_loan_schema.start_date,
+#                             end_date = new_loan_schema.end_date,
+#                             )
         
-        db.add(new_loan)
-        db.commit()
-        redis_key = f"loan_status:{new_loan.id}"
-        redis_client.set(redis_key, new_loan.loan_status, ex=600)  # optional TTL
+#         db.add(new_loan)
+#         db.commit()
 
-        return utils.HttpResponseFormatter(response_code=200,
-                                           message="Loan added sucessfully",
-                                           data={
-                                                "status": "Added new Loan"
-                                                }
-                                    )
-    except Exception as e:
-        traceback.print_exc()
-        print(f"Error occured due to : {e}")
-        return f"Error occured due to : {e}"
+#         return utils.HttpResponseFormatter(response_code=200,
+#                                            message="Loan added sucessfully",
+#                                            data={
+#                                                 "status": "Added new Loan"
+#                                                 }
+#                                     )
+#     except Exception as e:
+#         traceback.print_exc()
+#         print(f"Error occured due to : {e}")
+#         return f"Error occured due to : {e}"
     
 def get_current_user(req, token: str = Depends(oauth2_scheme), db =None):
     try:
@@ -70,7 +68,7 @@ def get_current_user(req, token: str = Depends(oauth2_scheme), db =None):
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Authentication")
     
-def apply_new_loan(req, loan_apply_schema:LM_schema.NewLoanApplySchema, db:Session):
+def apply_new_loan(req, loan_apply_schema, redis_client, db):
     try:
         user_record_from_token = get_current_user(req, db=db)
         print("user_record_from_token", user_record_from_token)
@@ -87,51 +85,93 @@ def apply_new_loan(req, loan_apply_schema:LM_schema.NewLoanApplySchema, db:Sessi
         db.add(new_loan)
         db.commit()
         
+        # Retrieve the latest loan for the user from the DB
         latest_loan = (
                 db.query(mdl.LoansModel)
                 .filter(mdl.LoansModel.user_id == user_id)
                 .order_by(desc(mdl.LoansModel.created_at))
                 .first()
-                        )
+        )
 
-        return utils.HttpResponseFormatter(response_code=200,
-                                           message="Loan Request added sucessfully",
-                                           data={"loan_id": latest_loan.id,
-                                                "status": f"Added new Loan Request from : {user_record_from_token.name}"
-                                                })
-    except Exception as e:
-        traceback.print_exc()
-        print(f"Error occured due to : {e}")
-        return f"Error occured due to : {e}"
-
-def all_loans(db:Session):
-    try:
-        user_record_from_token = get_current_user(db=db)
-        user_id = user_record_from_token.id
-        name = user_record_from_token.name
-        # user_id = 3
-        # name = "Vaibhav Srivastava"
+        # Prepare the loan data to store in Redis
+        loan_data = {
+            "loan_id": latest_loan.id,
+            "user_id": latest_loan.user_id,
+            "loan_amount": latest_loan.loan_amount,
+            "interest_rate": latest_loan.interest_rate,
+            "loan_status": latest_loan.loan_status,
+        }
         
-        all_loan = (
-                db.query(mdl.LoansModel)
-                .filter(mdl.LoansModel.user_id == user_id)
-                .all()
-                        )
+        # Attempt to store the loan data in Redis (with error handling)
+        try:
+            redis_key = f"loan_data:{latest_loan.id}"
+            redis_client.set(redis_key, json.dumps(loan_data), ex=600)  # optional TTL
+        except redis.exceptions.RedisError as e:
+            print(f"Error occurred while interacting with Redis: {e}")
+            # Optionally, log this or handle the error differently
 
+        # Returning the loan data as a response
         return utils.HttpResponseFormatter(response_code=200,
-                                           message="Loan Request added sucessfully",
-                                           data={"data": all_loan,
-                                                "status": f"Loans Associated with Mr. : {name}"
-                                                })
+                                           message="Loan Request added successfully",
+                                           data=loan_data)
     except Exception as e:
         traceback.print_exc()
-        print(f"Error occured due to : {e}")
-        return f"Error occured due to : {e}"
-    
+        print(f"Error occurred due to: {e}")
+        raise HTTPException(status_code=500, detail=f"Error occurred due to: {e}")
 
-def update_loan_status(loan_id ,loan_status, db:Session):
+def get_loan_status(req, redis_client, db):
+    user_record_from_token = get_current_user(req, db=db)
+    print("user_record_from_token", user_record_from_token)
+    user_id = user_record_from_token.id
+
+    redis_key = f"loan_data:{user_id}"
+
     try:
-        user_record_from_token = get_current_user(db=db)
+        # Check if the loan data exists in Redis
+        cached_loan_data = redis_client.get(redis_key)
+
+        if cached_loan_data:
+            # Deserialize the JSON data from Redis
+            loan_data = json.loads(cached_loan_data)
+            return {
+                "data": loan_data,
+                "source": "redis"
+            }
+
+    except redis.exceptions.RedisError as e:
+        print(f"Error occurred while interacting with Redis: {e}")
+        # Optionally, log this or handle the error differently
+
+    # Fallback to DB if not found in Redis
+    loan = db.query(mdl.LoansModel).filter(mdl.LoansModel.user_id == user_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+    # Prepare loan data to store in Redis
+    loan_data = {
+        "loan_id": loan.id,
+        "user_id": loan.user_id,
+        "loan_amount": loan.loan_amount,
+        "interest_rate": loan.interest_rate,
+        "loan_status": loan.loan_status,
+    }
+
+    # Attempt to cache the loan data for future use
+    try:
+        redis_client.set(redis_key, json.dumps(loan_data), ex=600)
+    except redis.exceptions.RedisError as e:
+        print(f"Error occurred while interacting with Redis: {e}")
+        # Optionally, log this or handle the error differently
+
+    # Returning the loan data from DB
+    return {
+        "data": loan_data,
+        "source": "db"
+    }
+
+def update_loan_status(req, loan_id ,loan_status, db:Session):
+    try:
+        user_record_from_token = get_current_user(req, db=db)
         if not user_record_from_token.is_admin:
             return utils.HttpResponseFormatter(response_code=400,
                                            message="User didn't have admin rights")
@@ -153,21 +193,3 @@ def update_loan_status(loan_id ,loan_status, db:Session):
         print(f"Error occured due to : {e}")
         return f"Error occured due to : {e}"
 
-@app.get("/loan-status/{loan_id}")
-def get_loan_status(loan_id: int, db: Session = Depends(get_db)):
-    redis_key = f"loan_status:{loan_id}"
-
-    # Try Redis cache first
-    cached_status = redis_client.get(redis_key)
-    if cached_status:
-        return {"loan_id": loan_id, "status": cached_status, "source": "cache"}
-
-    # Fallback to DB
-    loan = db.query(mdl.LoansModel).filter_by(id=loan_id).first()
-    if not loan:
-        raise HTTPException(status_code=404, detail="Loan not found")
-
-    # Cache it again for future
-    redis_client.set(redis_key, loan.loan_status, ex=600)
-
-    return {"loan_id": loan_id, "status": loan.loan_status, "source": "db"}

@@ -27,7 +27,7 @@ class LoansModel(BASE):
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=None, onupdate=func.now())
-  # Auto-update on row updates
+
     
 
 
