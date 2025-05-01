@@ -1,0 +1,12 @@
+CREATE TABLE public.loans
+(
+    id SERIAL PRIMARY KEY,
+    user_id integer NOT NULL,
+    loan_amount numeric(10,2) NOT NULL,
+    loan_status character varying(50),
+    interest_rate numeric(5,2),
+    start_date date,
+    end_date date,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone
+);

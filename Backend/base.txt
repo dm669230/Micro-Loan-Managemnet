@@ -1,0 +1,9 @@
+fastapi[standard]
+SQLAlchemy
+psycopg2
+bcrypt
+pydantic-settings
+python-dotenv
+passlib[bcrypt]
+openssl
+PyJWT
