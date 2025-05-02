@@ -25,7 +25,7 @@ function Register() {
       <form onSubmit={handleRegister}>
       <input type="text" placeholder="name" onChange={(e) => setName(e.target.value)} required />
       <input type="text" placeholder="email" onChange={(e) => setEmail(e.target.value)} required />
-        <input type="text" placeholder="password_hash" onChange={(e) => setPassword(e.target.value)} required />
+        <input type="text" placeholder="password" onChange={(e) => setPassword(e.target.value)} required />
         <button onClick={handleRegister} type="submit">Register</button>
       </form>
       <p>Already have an account? <a href="/login">Login</a></p>

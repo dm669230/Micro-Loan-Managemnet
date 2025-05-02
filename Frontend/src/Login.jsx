@@ -1,31 +1,37 @@
-import { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+export default function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
-
+  useEffect(() => {
+    if (localStorage.getItem("access_token")) navigate("/dashboard");
+  }, []);
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("password", password);
 
-      await axios.post('http://127.0.0.1:8000/auth/login', formData, {
+    axios
+      .post("http://127.0.0.1:8000/auth/login", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
+      })
+      .then((res) => {
+        console.log(res.data);
+        if (res.data.status_code == 200){
+        localStorage.setItem("access_token", res.data.data.access_token);
+        alert("Login Successful!");
+        navigate("/dashboard");
+        } else alert(res.data.message);
+      })
+      .catch((err) => {
+        alert("Login Error!");
       });
-
-      alert('Login Successful!');
-      navigate('/dashboard'); // Change to your actual route
-    } catch (err) {
-      alert('Login failed');
-      console.error(err.response?.data || err.message);
-    }
   };
 
   return (
@@ -48,9 +54,9 @@ function Login() {
         />
         <button type="submit">Login</button>
       </form>
-      <p>Don't have an account? <a href="/register">Register</a></p>
+      <p>
+        Don't have an account? <a href="/register">Register</a>
+      </p>
     </div>
   );
 }
-
-export default Login;

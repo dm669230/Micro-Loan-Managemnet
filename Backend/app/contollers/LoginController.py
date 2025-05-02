@@ -1,4 +1,3 @@
-
 import bcrypt
 import base64, hashlib
 from datetime import timedelta, timezone, datetime
@@ -21,7 +20,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-def hash_password(password: str) -> (str, str):
+def hash_password(password: str):
     salt = bcrypt.gensalt(rounds=14)
     bcrypt_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
     sha256_hash = hashlib.sha256(bcrypt_hash).hexdigest()
@@ -88,11 +87,5 @@ def login(form_data, db):
                                              }, 
                                              expires_delta=access_token_expires)
     
-    response = utils.HttpResponseFormatter(data=[Token(access_token=access_token, token_type="bearer")], response_code=200, message="User Login Successfull")
+    response = utils.HttpResponseFormatter(data=Token(access_token=access_token, token_type="bearer"), response_code=200, message="User Login Successfull")
     return response
-
-
-
-
-
-    

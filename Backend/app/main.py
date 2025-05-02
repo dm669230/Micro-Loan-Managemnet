@@ -63,5 +63,3 @@ def health_check(db: Session = Depends(get_db)):
 app.include_router(auth_router, prefix="/auth", tags=["AuthenticationAPI's"])
 app.include_router(admin_router, prefix="/admin", tags=["AdminAPI's"])
 app.include_router(loan_manage_router, prefix="/manageloan",tags=["LoanManageAPI's"])
-
-

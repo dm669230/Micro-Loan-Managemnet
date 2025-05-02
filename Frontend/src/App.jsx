@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Login from "./Login.jsx";
 import Register from "./Register";
-import TaskPage from "./TaskPage";
-
+import Dashboard from "./Dashboard"
+import LoanApplication from "./LoanApplication"
 
 function App() {
   return (
@@ -11,7 +11,8 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/tasks" element={<TaskPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/apply-loan" element={<LoanApplication />} />
       </Routes>
     </BrowserRouter>
   );

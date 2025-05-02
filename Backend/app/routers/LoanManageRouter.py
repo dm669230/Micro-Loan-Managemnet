@@ -3,7 +3,7 @@ from app.db.session import get_db, get_redis_client
 import jwt
 from jwt import PyJWTError
 import time
-from app.schemas import loan_manage_schema as loan_manage_schema
+from app.schemas.loan_manage_schema import NewLoanApplySchema, UpdateLoanStatusSchema
 from sqlalchemy.orm import Session
 from app.contollers.LoanManageController import apply_new_loan, get_loan_status, update_loan_status
 from app.models import model as mdl
@@ -53,19 +53,19 @@ def loan_management():
 
 @router.post("/loan_application")
 @login_required
-def loan_apply(req : Request, loan_apply_schema:loan_manage_schema.NewLoanApplySchema, 
+def loan_apply(req : Request, loan_apply_schema: NewLoanApplySchema, 
                redis_client:Session=Depends(get_redis_client), db:Session=Depends(get_db)):
     response = apply_new_loan(req, loan_apply_schema, redis_client, db)
     return response
 
-@router.post("/get_all_loans")
+@router.get("/get_all_loans")
 @login_required
 def get_loans(req : Request, redis_client:Session=Depends(get_redis_client), db:Session=Depends(get_db)):
     response = get_loan_status(req, redis_client, db)
     return response
 
-@router.post("/{loan_id}/status")
+@router.patch("/update/{loan_id}")
 @login_required
-def loan_status(req : Request, loan_id : int, loan_status : loan_manage_schema.UpdateLoanStatusSchema , db:Session = Depends(get_db)):
-    response = update_loan_status(req, loan_id,loan_status, db)
+def loan_status(loan_id : int, req : Request, loan_status : UpdateLoanStatusSchema , db:Session = Depends(get_db)):
+    response = update_loan_status(req, loan_id, loan_status, db)
     return response
