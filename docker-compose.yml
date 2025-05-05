@@ -23,6 +23,37 @@ services:
     networks:
       - app_network
 
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: backend-service
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - SERVER_HOST=postgres
+      - SERVER_PORT=5432
+      - DB_NAME=postgres
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: frontend-service
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
 volumes:
   postgres_data:
 
