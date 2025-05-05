@@ -13,13 +13,10 @@ from typing_extensions import Annotated
 from .config import config
 from dotenv import load_dotenv
 
-# Load environment variables from the .env file
 load_dotenv(override=True)
-# Create DB tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-# Allow your frontend origin (e.g., React running on localhost:3000)
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -28,7 +25,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # or use ["*"] for all origins (not recommended in production)
+    allow_origins=origins, 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +52,7 @@ async def info(settings:Annotated[config.Settings, Depends(get_settings)]):
 def health_check(db: Session = Depends(get_db)):
     try:
         print("Checking database connection...", db)
-        db.execute("SELECT 1")  # Simple query to check DB connection
+        db.execute("SELECT 1")
         return {"status": "healthy"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}

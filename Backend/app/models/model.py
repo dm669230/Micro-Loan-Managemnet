@@ -1,6 +1,5 @@
 from sqlalchemy import Integer, Float, Column, String, PrimaryKeyConstraint, Text, TIMESTAMP, Boolean, func, ForeignKey, Date
 from app.db.base import Base as BASE
-# from app.databases.query_mixin import QueryMixin
 
 
 class UsersModel(BASE):

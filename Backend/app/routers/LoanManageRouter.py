@@ -41,8 +41,7 @@ def login_required(func):
         user_id = decoded.get("user_id")
         exist_user = db.query(mdl.UsersModel).filter(mdl.UsersModel.id == user_id).first()
         if exist_user and exist_user.email == username:
-            # req.user = exist_user
-            req.state.user = exist_user  # ✅ Set user in req.stateassign req.user
+            req.state.user = exist_user  
             return func(*args, **kwargs)
         return JSONResponse({"message": "user does not exist"})
     return wrapper

@@ -72,7 +72,6 @@ def login(form_data, db):
     
     entered_password = form_data.password
     
-    # Get the stored password salt hash
     stored_hash = user_record.password_hash
     stored_salt = user_record.salt
     is_exist = validate_password(entered_password, stored_hash=stored_hash,stored_salt=stored_salt )
