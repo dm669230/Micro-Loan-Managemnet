@@ -18,10 +18,17 @@ export default function Dashboard() {
     if (access_token) {
       try {
         const data = jwtDecode(access_token);
+        if (data.exp * 1000 < Date.now()) {
+          localStorage.removeItem("access_token");
+          navigate("/login");
+          return;
+        }
         setIsAdmin(data.is_admin);
       } catch (err) {
         console.error("Invalid token");
+        localStorage.removeItem("access_token");
         navigate("/login");
+        return;
       }
 
       axios

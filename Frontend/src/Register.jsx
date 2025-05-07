@@ -8,11 +8,13 @@ function Register() {
   const [password_hash, setPassword] = useState('');
   const navigate = useNavigate();
 
+
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://127.0.0.1:8000/auth/registration', { name, email, password_hash });
+      await axios.post('http://localhost:8000/auth/registration', { name, email, password_hash });
       alert('Registered Successfully!');
+      localStorage.removeItem('access_token');
       navigate('/login');
     } catch (err) {
       alert('Registration failed');

@@ -48,7 +48,7 @@ services:
       dockerfile: Dockerfile
     container_name: frontend-service
     ports:
-      - "3000:80"
+      - "3000:4173"
     depends_on:
       - backend
     networks:
